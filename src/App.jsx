@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Stats,
   OrbitControls,
   ContactShadows,
   useGLTF
@@ -11,16 +10,13 @@ import './App.css';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 import * as THREE from 'three';
 
-// Define the URL of the model you want to load
-const modelUrl = '/models/mercedes-maybach.glb';
-
 function Model({ url, scale, position }) {
   const { scene } = useGLTF(url);
   return <primitive object={scene} scale={scale} position={position} />;
 }
 
 function Env({ hdriUrl }) {
-  const { gl, scene } = useThree();
+  const { scene } = useThree();
 
   useEffect(() => {
     if (hdriUrl) {
@@ -38,12 +34,36 @@ function Env({ hdriUrl }) {
 
 export default function App() {
   const [hdriUrl, setHdriUrl] = useState('/img/scythian_tombs_2_4k.hdr');
+  const [modelUrl, setModelUrl] = useState('/models/mercedes-maybach.glb');
+  const [modelScale, setModelScale] = useState(10); // Renamed from scale to modelScale
+  const fileInputGlbRef = useRef(null);
 
-  const { scale, positionX, positionY, positionZ } = useControls({
-    scale: { value: 10, min: 0, max: 500, step: 0.1 },
-    positionX: { value: 0, min: 1, max: 10, step: 0.1 },
-    positionY: { value: 0, min: 1, max: 10, step: 0.1 },
-    positionZ: { value: 0, min: 1, max: 10, step: 0.1 },
+  const handleFileGlbChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setModelUrl(url);
+      setModelScale(10); // Reset scale when changing model
+    }
+  };
+
+  const handleScaleChange = (value) => {
+    setModelScale(value); // Adjust modelScale instead of scale
+  };
+
+  const handleUploadGlbClick = () => {
+    if (fileInputGlbRef.current) {
+      fileInputGlbRef.current.click();
+    } else {
+      console.log("File input ref is null or not yet initialized.");
+    }
+  };
+
+  const { positionX, positionY, positionZ } = useControls({
+    positionX: { value: 0, min: -10, max: 10, step: 0.1 },
+    positionY: { value: 0, min: -10, max: 10, step: 0.1 },
+    positionZ: { value: 0, min: -10, max: 10, step: 0.1 },
+    scale: { value: 10, min: 0, max: 500, step: 0.1 }, // Renamed control to scale
   });
 
   const handleFileChange = (event) => {
@@ -56,13 +76,24 @@ export default function App() {
 
   return (
     <>
-      <input type="file" accept=".hdr" onChange={handleFileChange} style={{ position: 'absolute', zIndex: 1 }} />
+      <input type="file" accept=".hdr" onChange={handleFileChange} style={{ position: 'absolute', zIndex: 1, marginLeft: '20px',marginTop: '20px' }} />
+      <button onClick={handleUploadGlbClick} style={{ position: 'absolute', zIndex: 1, marginLeft: '20px', marginTop: '60px' }}>
+        Upload Model
+      </button>
+      {/* Ensure ref is correctly assigned */}
+      <input
+        type="file"
+        accept=".glb, .gltf"
+        onChange={handleFileGlbChange}
+        ref={fileInputGlbRef} // Assign ref here
+        style={{ display: 'none' }}
+      />
       <Canvas camera={{ position: [0, 10, 8] }}>
         <Env hdriUrl={hdriUrl} />
         <group>
           <Model
             url={modelUrl}
-            scale={scale}
+            scale={modelScale} // Use modelScale instead of scale
             position={[positionX, positionY, positionZ]}
           />
         </group>
